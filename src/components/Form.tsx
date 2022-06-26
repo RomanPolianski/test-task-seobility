@@ -1,10 +1,21 @@
-import { ChangeEvent, FC, FocusEvent, FormEvent, useState } from 'react';
+import {
+  ChangeEvent,
+  FC,
+  FocusEvent,
+  FormEvent,
+  useEffect,
+  useState,
+} from 'react';
 import NumberFormat from 'react-number-format';
 import '../App.css';
+import { useValidation } from '../validators/validator';
+import TextareaAutosize from 'react-textarea-autosize';
 
-const useInput = (initialValue: string) => {
+const useInput = (initialValue: string, validations?: any) => {
   const [value, setValue] = useState(initialValue);
   const [isDirty, setDirty] = useState(false);
+  const valid = useValidation(value, validations);
+
   const onChange = (
     e: ChangeEvent<HTMLInputElement> | ChangeEvent<HTMLTextAreaElement>
   ) => {
@@ -23,15 +34,21 @@ const useInput = (initialValue: string) => {
     value,
     onChange,
     onBlur,
+    isDirty,
+    ...valid,
   };
 };
 
 const Form: FC = (): JSX.Element => {
-  const nameSurname = useInput('');
-  const email = useInput('');
-  const phone = useInput('');
-  const birthday = useInput('');
-  const message = useInput('');
+  const nameSurname = useInput('', { isNameSurname: false });
+  const email = useInput('', { minLength: 3, isEmpty: true, isEmail: false });
+  const phone = useInput('', { isEmpty: true, isPhone: false });
+  const birthday = useInput('', { isEmpty: true });
+  const message = useInput('', {
+    minLength: 10,
+    isEmpty: true,
+    maxLength: 300,
+  });
   const values = {
     nameSurname: nameSurname.value,
     email: email.value,
@@ -55,13 +72,15 @@ const Form: FC = (): JSX.Element => {
         </label>
         <input
           name="nameSurname"
-          placeholder="Имя и фамилия"
           type="text"
-          className="formInput"
+          className="formInput nameSurnameInput"
           value={nameSurname.value}
           onChange={(e) => nameSurname.onChange(e)}
           onBlur={(e) => nameSurname.onBlur(e)}
         ></input>
+        {nameSurname.isDirty && nameSurname.nameSurnameError && (
+          <div className="errMsg">Неверно введены имя и фамилия</div>
+        )}
         <label htmlFor="email" className="label">
           Электронная почта
         </label>
@@ -74,6 +93,15 @@ const Form: FC = (): JSX.Element => {
           onChange={(e) => email.onChange(e)}
           onBlur={(e) => email.onBlur(e)}
         ></input>
+        {email.isDirty && email.isEmpty && (
+          <div className="errMsg">Поле не может быть пустым</div>
+        )}
+        {email.isDirty && email.minLengthError && (
+          <div className="errMsg">Минимальная длина поля 3</div>
+        )}
+        {email.isDirty && email.emailError && (
+          <div className="errMsg">Неверный email</div>
+        )}
         <label htmlFor="phone" className="label">
           Телефон
         </label>
@@ -95,6 +123,9 @@ const Form: FC = (): JSX.Element => {
               | FocusEvent<HTMLTextAreaElement, Element>
           ) => phone.onBlur(e)}
         />
+        {phone.isDirty && phone.phoneError && (
+          <div className="errMsg">Заполните поле</div>
+        )}
         <label htmlFor="birthday" className="label">
           Дата рождения
         </label>
@@ -106,18 +137,40 @@ const Form: FC = (): JSX.Element => {
           onChange={(e) => birthday.onChange(e)}
           onBlur={(e) => birthday.onBlur(e)}
         ></input>
+        {birthday.isDirty && birthday.isEmpty && (
+          <div className="errMsg">Обязательное поле</div>
+        )}
         <label htmlFor="message" className="label">
           Сообщение
         </label>
-        <textarea
+        <TextareaAutosize
           name="message"
           placeholder="Введите сообщение"
           className="formInput"
           value={message.value}
           onChange={(e) => message.onChange(e)}
           onBlur={(e) => message.onBlur(e)}
-        ></textarea>
-        <button className="submitButton" type="submit" onClick={handleSubmit}>
+        ></TextareaAutosize>
+        {message.isDirty && message.minLengthError && (
+          <div className="errMsg">Минимальная длина 10</div>
+        )}
+        {message.isDirty && message.isEmpty && (
+          <div className="errMsg">Обязательное поле</div>
+        )}
+        {message.isDirty && message.maxLengthError && (
+          <div className="errMsg"> Максимальная длина 300 символов</div>
+        )}
+        <button
+          className="submitButton"
+          disabled={
+            !email.inputValid ||
+            !message.inputValid ||
+            !birthday.inputValid ||
+            !phone.inputValid
+          }
+          type="submit"
+          onClick={handleSubmit}
+        >
           Отправить
         </button>
       </form>
