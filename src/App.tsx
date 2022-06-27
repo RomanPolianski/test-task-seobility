@@ -1,7 +1,12 @@
+import Form from './components/Form';
+import './App.scss';
+
 const App = () => {
-    return (
-        <p>Hi im here</p>
-    )
-}
+  return (
+    <div className="form">
+      <Form />
+    </div>
+  );
+};
 
 export default App;
