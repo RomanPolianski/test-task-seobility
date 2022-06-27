@@ -54,8 +54,8 @@ export const useValidation = (value: string, validations: []) => {
       minLengthError ||
       maxLengthError ||
       emailError ||
-      phoneError ||
-      nameSurnameError
+      nameSurnameError ||
+      phoneError
     ) {
       setInputValid(false);
     } else {
