@@ -1,46 +1,12 @@
-import {
-  ChangeEvent,
-  FC,
-  FocusEvent,
-  FormEvent,
-  useEffect,
-  useState,
-} from 'react';
+import { ChangeEvent, FC, FocusEvent, FormEvent, useState } from 'react';
 import NumberFormat from 'react-number-format';
-import '../App.css';
-import { useValidation } from '../validators/validator';
+import '../App.scss';
 import TextareaAutosize from 'react-textarea-autosize';
-
-const useInput = (initialValue: string, validations?: any) => {
-  const [value, setValue] = useState(initialValue);
-  const [isDirty, setDirty] = useState(false);
-  const valid = useValidation(value, validations);
-
-  const onChange = (
-    e: ChangeEvent<HTMLInputElement> | ChangeEvent<HTMLTextAreaElement>
-  ) => {
-    setValue(e.target.value);
-  };
-
-  const onBlur = (
-    e:
-      | React.FocusEvent<HTMLInputElement, Element>
-      | React.FocusEvent<HTMLTextAreaElement, Element>
-  ) => {
-    setDirty(true);
-  };
-
-  return {
-    value,
-    onChange,
-    onBlur,
-    isDirty,
-    ...valid,
-  };
-};
+import axios from 'axios';
+import { useInput } from '../unils/useInputHook';
 
 const Form: FC = (): JSX.Element => {
-  const nameSurname = useInput('', { isNameSurname: false });
+  const nameSurname = useInput('', { isNameSurname: false, isEmpty: true });
   const email = useInput('', { minLength: 3, isEmpty: true, isEmail: false });
   const phone = useInput('', { isEmpty: true, isPhone: false });
   const birthday = useInput('', { isEmpty: true });
@@ -57,11 +23,40 @@ const Form: FC = (): JSX.Element => {
     message: message.value,
   };
 
+  const [formStatus, setFormStatus] = useState<boolean>(false);
+  const [formStatusText, setFormStatusText] = useState<string>('');
+  const [isformStatusErrType, setFormStatusErrType] = useState<boolean>();
+
   const handleSubmit = (
     e: React.MouseEvent<HTMLButtonElement> | FormEvent<HTMLFormElement>
   ) => {
     e.preventDefault();
-    console.log(values);
+    axios.defaults.baseURL = 'http://localhost:5000';
+    async function submitForm() {
+      try {
+        const response = await axios.post('/submitForm', values);
+        if (response.status === 200) {
+          setFormStatus(true);
+          setFormStatusText(response.data.message);
+          setFormStatusErrType(false);
+          nameSurname.onSubmitForm();
+          email.onSubmitForm();
+          phone.onSubmitForm();
+          birthday.onSubmitForm();
+          message.onSubmitForm();
+        } else {
+          setFormStatus(true);
+          setFormStatusText(response.data.message);
+          setFormStatusErrType(true);
+        }
+      } catch (error: any) {
+        console.log(error.message);
+        setFormStatus(true);
+        setFormStatusErrType(true);
+        setFormStatusText(error.message.toString());
+      }
+    }
+    submitForm();
   };
 
   return (
@@ -163,6 +158,7 @@ const Form: FC = (): JSX.Element => {
         <button
           className="submitButton"
           disabled={
+            !nameSurname.inputValid ||
             !email.inputValid ||
             !message.inputValid ||
             !birthday.inputValid ||
@@ -173,6 +169,12 @@ const Form: FC = (): JSX.Element => {
         >
           Отправить
         </button>
+        {!nameSurname.isDirty && formStatus && (
+          <div className="successMsg">{formStatusText}</div>
+        )}
+        {nameSurname.isDirty && formStatus && isformStatusErrType && (
+          <div className="errMsg">{formStatusText}</div>
+        )}
       </form>
     </div>
   );
